@@ -12,6 +12,7 @@ Name:		python-%{module}
 # keep 3.x here for python2 support
 Version:	3.1.1
 Release:	1
+Epoch:		1
 License:	MIT
 Group:		Libraries/Python
 #Source0Download: https://pypi.org/simple/cachetools/

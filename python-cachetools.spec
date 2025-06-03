@@ -1,57 +1,71 @@
 #
 # Conditional build:
-%bcond_with	doc		# don't build doc (not provided by package)
-%bcond_without	tests	# do not perform "make test"
+%bcond_without	doc	# Sphinx documentation (not provided by package)
+%bcond_without	tests	# unit tests
 %bcond_without	python2 # CPython 2.x module
-%bcond_with	python3 # CPython 3.x module
+%bcond_with	python3 # CPython 3.x module (built from python3-cachetools.spec)
 
 %define		module	cachetools
-Summary:	Various cache implementations based on different cache algorithms
-Summary(pl.UTF-8):	Rózne implementacje cache bazujące na róznych algorytmach
-# Name must match the python module/package name (as in 'import' statement)
+Summary:	Extensible memoizing collections and decorators
+Summary(pl.UTF-8):	Rozszerzalne kolekcje i dekoratory z pamięcią
 Name:		python-%{module}
-Version:	0.7.0
-Release:	15
+# keep 3.x here for python2 support
+Version:	3.1.1
+Release:	1
 License:	MIT
 Group:		Libraries/Python
-
-Source0:	https://pypi.python.org/packages/source/c/%{module}/%{module}-%{version}.tar.gz
-# Source0-md5:	c67ebb099e7607b689f79b2869585d36
+#Source0Download: https://pypi.org/simple/cachetools/
+Source0:	https://files.pythonhosted.org/packages/source/c/cachetools/%{module}-%{version}.tar.gz
+# Source0-md5:	91aa9b611b6345154df84e8e37746f41
 URL:		https://github.com/tkem/cachetools
-BuildRequires:	rpm-pythonprov
-# if py_postclean is used
-BuildRequires:	rpmbuild(macros) >= 1.710
 %if %{with python2}
-BuildRequires:	python-distribute
+BuildRequires:	python-modules >= 1:2.7
+BuildRequires:	python-setuptools
+%if %{with tests}
+BuildRequires:	python-pytest
+%endif
 %endif
 %if %{with python3}
-BuildRequires:	python3-modules
+BuildRequires:	python3-modules >= 1;3.4
+BuildRequires:	python3-setuptools
+%if %{with tests}
+BuildRequires:	python3-pytest
 %endif
-Requires:		python-modules
+%endif
+%if %{with doc}
+BuildRequires:	sphinx-pdg-2
+%endif
+BuildRequires:	rpm-pythonprov
+BuildRequires:	rpmbuild(macros) >= 1.714
+Requires:	python-modules >= 1:2.7
 BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
-This module provides various cache implementations based on different cache algorithms, 
-as well as decorators for easily memoizing function and method calls.
+This module provides various memoizing collections and decorators,
+including variants of the Python 3 Standard Library's @lru_cache
+function decorator.
 
 %description -l pl.UTF-8
-Moduł dostarcza rózne implementacje cache'u bazujące na róznych algorytmach, jak również
-dektoratory do łatwego zapamiętywania wyników funcji i metod.
+Ten moduł udostępnia różne kolekcje i dekoratory z pamięcią, w tym
+warianty dekoratora funkcji @lru_cache z biblioteki standardowej
+Pythona 3.
 
 %package -n python3-%{module}
-Summary:	Various cache implementations based on different cache algorithms
-Summary(pl.UTF-8):	Rózne implementacje cache bazujące na róznych algorytmach
+Summary:	Extensible memoizing collections and decorators
+Summary(pl.UTF-8):	Rozszerzalne kolekcje i dekoratory z pamięcią
 Group:		Libraries/Python
-Requires:		python3-modules
+Requires:	python3-modules >= 1:3.4
 
 %description -n python3-%{module}
-This module provides various cache implementations based on different cache algorithms, 
-as well as decorators for easily memoizing function and method calls.
+This module provides various memoizing collections and decorators,
+including variants of the Python 3 Standard Library's @lru_cache
+function decorator.
 
 %description -n python3-%{module} -l pl.UTF-8
-Moduł dostarcza rózne implementacje cache'u bazujące na róznych algorytmach, jak również
-dektoratory do łatwego zapamiętywania wyników funcji i metod.
+Ten moduł udostępnia różne kolekcje i dekoratory z pamięcią, w tym
+warianty dekoratora funkcji @lru_cache z biblioteki standardowej
+Pythona 3.
 
 %package apidocs
 Summary:	%{module} API documentation
@@ -69,17 +83,29 @@ Dokumentacja API %{module}.
 
 %build
 %if %{with python2}
-%py_build %{?with_tests:test}
+%py_build
+
+%if %{with tests}
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+PYTHONPATH=$(pwd) \
+%{__python} -m pytest tests
+%endif
 %endif
 
 %if %{with python3}
-%py3_build %{?with_tests:test}
+%py3_build
+
+%if %{with tests}
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+PYTHONPATH=$(pwd) \
+%{__python3} -m pytest tests
+%endif
 %endif
 
 %if %{with doc}
-cd docs
-%{__make} -j1 html
-rm -rf _build/html/_sources
+PYTHONPATH=$(pwd) \
+%{__make} -C docs html \
+	SPHINXBUILD=sphinx-build-2
 %endif
 
 %install
@@ -101,17 +127,15 @@ rm -rf $RPM_BUILD_ROOT
 %if %{with python2}
 %files
 %defattr(644,root,root,755)
-%doc LICENSE README.rst
+%doc CHANGES.rst LICENSE README.rst
 %{py_sitescriptdir}/%{module}
-%if "%{py_ver}" > "2.4"
 %{py_sitescriptdir}/%{module}-%{version}-py*.egg-info
-%endif
 %endif
 
 %if %{with python3}
 %files -n python3-%{module}
 %defattr(644,root,root,755)
-%doc LICENSE README.rst
+%doc CHANGES.rst LICENSE README.rst
 %{py3_sitescriptdir}/%{module}
 %{py3_sitescriptdir}/%{module}-%{version}-py*.egg-info
 %endif
@@ -119,5 +143,5 @@ rm -rf $RPM_BUILD_ROOT
 %if %{with doc}
 %files apidocs
 %defattr(644,root,root,755)
-%doc docs/_build/html/*
+%doc docs/_build/html/{_static,*.html,*.js}
 %endif

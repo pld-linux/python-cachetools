@@ -11,7 +11,7 @@ Summary(pl.UTF-8):	Rozszerzalne kolekcje i dekoratory z pamięcią
 Name:		python-%{module}
 # keep 3.x here for python2 support
 Version:	3.1.1
-Release:	1
+Release:	2
 Epoch:		1
 License:	MIT
 Group:		Libraries/Python
